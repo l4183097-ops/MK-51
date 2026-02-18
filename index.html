@@ -1,240 +1,130 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
-<title>المتجر الاحترافي</title>
+<title>متجري</title>
 
 <style>
-
-body{
-font-family:Tahoma;
-margin:0;
-background:#f3f5f9;
-}
-
-/* الهيدر */
-.header{
-background:#4361ee;
-color:white;
-padding:15px;
-text-align:center;
-font-size:22px;
-}
-
-/* البحث */
-.search{
-text-align:center;
-padding:10px;
-}
-.search input{
-width:60%;
-padding:10px;
-border-radius:8px;
-border:1px solid #ccc;
-}
-
-/* المنتجات */
-.products{
-display:flex;
-flex-wrap:wrap;
-gap:20px;
-justify-content:center;
-padding:20px;
-}
-
-.card{
-width:220px;
-background:white;
-border-radius:12px;
-box-shadow:0 4px 12px rgba(0,0,0,.1);
-overflow:hidden;
-position:relative;
-}
-
-.card img{
-width:100%;
-height:170px;
-object-fit:cover;
-}
-
-.info{
-padding:10px;
-text-align:center;
-}
-
-.price{color:#4361ee;font-weight:bold}
-
-button{
-padding:7px;
-margin-top:5px;
-border:none;
-border-radius:8px;
-background:#4361ee;
-color:white;
-cursor:pointer;
-}
-
-/* المفضلة */
-.fav{
-position:absolute;
-top:8px;
-left:8px;
-font-size:20px;
-cursor:pointer;
-}
-.active{color:red}
-
-/* السلة */
+body{font-family:Tajawal;background:#f5f5f5;margin:0;direction:rtl}
+header{background:#ff6b00;color:#fff;padding:15px;text-align:center}
+.products{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:10px}
+.card{background:#fff;padding:10px;border-radius:10px;text-align:center}
+.card img{width:100%;height:120px;object-fit:cover;border-radius:8px}
 .cart{
-position:fixed;
-bottom:0;
-width:100%;
-background:#222;
-color:white;
-text-align:center;
-padding:10px;
+position:fixed;bottom:20px;left:20px;
+background:#ff6b00;color:white;
+padding:12px;border-radius:50px;
+cursor:pointer;
 }
-
-/* لوحة التحكم */
-.admin{
-background:white;
-padding:15px;
-margin:15px;
-border-radius:10px;
-box-shadow:0 3px 10px rgba(0,0,0,.1);
-}
-
-.admin input{
-display:block;
-margin:8px auto;
-padding:8px;
-width:80%;
-}
-
-.hidden{display:none}
-
 </style>
 </head>
 
 <body>
 
-<div class="header">
-🛒 المتجر الاحترافي
-<button onclick="toggleAdmin()">⚙️ لوحة التحكم</button>
-</div>
-
-<div class="search">
-<input id="search" placeholder="ابحث عن منتج...">
-</div>
-
-<!-- لوحة التحكم -->
-<div class="admin hidden" id="admin">
-<h3>إضافة منتج جديد</h3>
-
-<input id="name" placeholder="اسم المنتج">
-<input id="price" type="number" placeholder="السعر">
-<input id="image" placeholder="رابط الصورة">
-
-<button onclick="addProduct()">إضافة المنتج</button>
-</div>
+<header>🛒 متجر التوصيل</header>
 
 <div class="products" id="products"></div>
 
-<div class="cart">
-عدد المنتجات: <span id="count">0</span> |
-الإجمالي: <span id="total">0</span> ريال
+<div class="cart" onclick="sendOrder()">
+🛒 <span id="count">0</span>
 </div>
 
 <script>
 
-/* تحميل المنتجات من التخزين */
-let products = JSON.parse(localStorage.getItem("products")) || [
- {name:"هاتف",price:120,image:"https://via.placeholder.com/220"},
- {name:"سماعات",price:40,image:"https://via.placeholder.com/220"}
-];
+const TOKEN="PUT_TOKEN";
+const REPO="USERNAME/REPO";
 
-let cartCount=0;
-let total=0;
+let cart=[];
 
-/* عرض المنتجات */
-function render(list){
-const box=document.getElementById("products");
-box.innerHTML="";
+/* تحميل المنتجات */
+async function loadProducts(){
+let res=await fetch("products.json");
+let items=await res.json();
 
-list.forEach((p,i)=>{
-box.innerHTML+=`
+products.innerHTML="";
+
+items.forEach(p=>{
+products.innerHTML+=`
 <div class="card">
-
-<div class="fav" onclick="fav(this)">♡</div>
-
-<img src="${p.image}">
-
-<div class="info">
+<img src="${p.img}">
 <h4>${p.name}</h4>
-<div class="price">${p.price} ريال</div>
-
-<button onclick="addCart(${p.price})">
-إضافة للسلة
+<p>${p.price}$</p>
+<button onclick="addToCart('${p.name}',${p.price})">
+إضافة
 </button>
-</div>
-
 </div>`;
 });
 }
+loadProducts();
 
-render(products);
-
-/* ❤️ مفضلة */
-function fav(el){
-el.classList.toggle("active");
-el.textContent=el.classList.contains("active")?"♥":"♡";
+/* السلة */
+function addToCart(name,price){
+cart.push({product:name,price});
+count.innerText=cart.length;
 }
 
-/* 💰 سلة */
-function addCart(price){
-cartCount++;
-total+=price;
-
-count.textContent=cartCount;
-totalSpan.textContent=total;
+/* الموقع */
+function getLocation(){
+return new Promise(resolve=>{
+navigator.geolocation.getCurrentPosition(pos=>{
+resolve({
+lat:pos.coords.latitude,
+lng:pos.coords.longitude
+});
+});
+});
 }
 
-const count=document.getElementById("count");
-const totalSpan=document.getElementById("total");
+/* إرسال الطلب */
+async function sendOrder(){
 
-/* 🔎 البحث */
-search.addEventListener("input",e=>{
-let v=e.target.value;
-render(products.filter(p=>p.name.includes(v)));
+if(cart.length==0){
+alert("السلة فارغة");
+return;
+}
+
+alert("سيتم تحديد موقعك للتوصيل 🚚");
+
+let location=await getLocation();
+
+let order={
+id:Date.now(),
+items:cart,
+status:"pending",
+time:new Date().toLocaleString(),
+location:location
+};
+
+let res=await fetch(
+`https://api.github.com/repos/${REPO}/contents/orders.json`,
+{headers:{Authorization:"token "+TOKEN}}
+);
+
+let data=await res.json();
+let orders=JSON.parse(atob(data.content));
+
+orders.push(order);
+
+await fetch(
+`https://api.github.com/repos/${REPO}/contents/orders.json`,
+{
+method:"PUT",
+headers:{
+Authorization:"token "+TOKEN,
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+message:"new order",
+content:btoa(JSON.stringify(orders,null,2)),
+sha:data.sha
+})
 });
 
-/* ⚙️ اظهار لوحة التحكم */
-function toggleAdmin(){
-admin.classList.toggle("hidden");
-}
+alert("✅ تم إرسال الطلب\nرقم الطلب: "+order.id);
 
-/* ➕ إضافة منتج */
-function addProduct(){
-
-let name=document.getElementById("name").value;
-let price=document.getElementById("price").value;
-let image=document.getElementById("image").value || 
-"https://via.placeholder.com/220";
-
-if(!name || !price) return alert("أكمل البيانات");
-
-products.push({name,price,image});
-
-/* حفظ دائم */
-localStorage.setItem("products",JSON.stringify(products));
-
-render(products);
-
-document.getElementById("name").value="";
-document.getElementById("price").value="";
-document.getElementById("image").value="";
+cart=[];
+count.innerText=0;
 }
 
 </script>
